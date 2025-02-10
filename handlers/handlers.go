@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
+	"rpsweb/rps"
+	"strconv"
 	"text/template"
 )
 
@@ -30,10 +32,12 @@ func RenderTemplate(w http.ResponseWriter,  page string, data any)  {
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
+	diffValue()
 	RenderTemplate(w, "index.html", nil)
 }
 
 func NewGame(w http.ResponseWriter, r *http.Request) {
+	diffValue()
 	RenderTemplate(w, "new-game.html", nil)
 }
 func Game(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +50,35 @@ func Game(w http.ResponseWriter, r *http.Request) {
 
 		player.Name = r.Form.Get("name")
 	}
+
+	//Redirect to another route
+	if player.Name == "" {
+		http.Redirect(w, r, "/new", http.StatusFound)
+	}
 	RenderTemplate(w, "game.html", player)
 	
 }
 func Play(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Play")
+	playerChoice, _ := strconv.Atoi(r.URL.Query().Get("c"))
+	result := rps.PlayRound(playerChoice)
+
+	out, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
 }
 
 func About(w http.ResponseWriter, r *http.Request) {
+	diffValue()
 	RenderTemplate(w, "about.html", nil)
+}
+
+func diffValue()  {
+	player.Name = ""
+	rps.ComputerScore = 0
+	rps.PlayerScore = 0
 }
